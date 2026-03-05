@@ -27,6 +27,6 @@
     "node": ">=16"
   },
   "devDependencies": {
-    "markdownlint": "^0.30.0"
+    "markdownlint": "^0.40.0"
   }
 }
