@@ -118,25 +118,6 @@ markdownlint(options, (err, result) => {
 - [markdownlint Custom Rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/CustomRules.md)
 - [markdownlint-rule-search-replace](https://github.com/OnkarRuikar/markdownlint-rule-search-replace) (template)
 
-## Create GitHub repo and publish to npm
-
-**Before pushing:** Replace `YOUR_GITHUB_USERNAME` in `package.json` (homepage, repository.url, bugs) with your GitHub username.
-
-1. **Create the GitHub repo (from the package directory):**
-   ```bash
-   cd markdownlint-rule-table-format
-   git init
-   git add .
-   git commit -m "Initial commit: table-format rule"
-   gh repo create markdownlint-rule-table-format --public --source=. --push
-   ```
-
-2. **Publish to npm (optional):**
-   ```bash
-   npm login
-   npm publish
-   ```
-
 ## License
 
 MIT
