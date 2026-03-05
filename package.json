@@ -1,0 +1,32 @@
+{
+  "name": "markdownlint-rule-table-format",
+  "version": "1.0.0",
+  "description": "A custom markdownlint rule to format GFM tables to comply with MD060 (aligned, compact, or tight style)",
+  "main": "rule.js",
+  "license": "MIT",
+  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/markdownlint-rule-table-format#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/markdownlint-rule-table-format.git"
+  },
+  "bugs": "https://github.com/YOUR_GITHUB_USERNAME/markdownlint-rule-table-format/issues",
+  "keywords": [
+    "markdownlint-rule",
+    "markdownlint",
+    "markdown",
+    "table",
+    "MD060",
+    "format"
+  ],
+  "private": false,
+  "scripts": {
+    "test": "node tests/rule-tests.js",
+    "lint": "eslint rule.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "devDependencies": {
+    "markdownlint": "^0.30.0"
+  }
+}
