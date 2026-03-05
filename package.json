@@ -4,12 +4,12 @@
   "description": "A custom markdownlint rule to format GFM tables to comply with MD060 (aligned, compact, or tight style)",
   "main": "rule.js",
   "license": "MIT",
-  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/markdownlint-rule-table-format#readme",
+  "homepage": "https://github.com/swirle13/markdownlint-rule-table-format#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/markdownlint-rule-table-format.git"
+    "url": "https://github.com/swirle13/markdownlint-rule-table-format.git"
   },
-  "bugs": "https://github.com/YOUR_GITHUB_USERNAME/markdownlint-rule-table-format/issues",
+  "bugs": "https://github.com/swirle13/markdownlint-rule-table-format/issues",
   "keywords": [
     "markdownlint-rule",
     "markdownlint",
