@@ -7,7 +7,7 @@
   "homepage": "https://github.com/swirle13/markdownlint-rule-table-format#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/swirle13/markdownlint-rule-table-format.git"
+    "url": "git+https://github.com/swirle13/markdownlint-rule-table-format.git"
   },
   "bugs": "https://github.com/swirle13/markdownlint-rule-table-format/issues",
   "keywords": [
