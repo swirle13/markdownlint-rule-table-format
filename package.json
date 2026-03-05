@@ -1,6 +1,6 @@
 {
   "name": "markdownlint-rule-table-format",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A custom markdownlint rule to format GFM tables to comply with MD060 (aligned, compact, or tight style)",
   "main": "rule.js",
   "license": "MIT",
