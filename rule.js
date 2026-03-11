@@ -2,13 +2,12 @@
 
 /**
  * Custom markdownlint rule: format GFM tables to comply with MD060 (table-column-style).
- * Logic mirrors vscode-markdown tableFormatter.ts for detection and output.
- * @see https://github.com/DavidAnson/markdownlint/blob/main/doc/CustomRules.md
- * @see https://github.com/yzhang-gh/vscode-markdown/blob/master/src/tableFormatter.ts
- * @see https://github.com/DavidAnson/markdownlint/blob/main/doc/md060.md
+ * Uses the same visual width calculation as markdownlint (via string-width),
+ * so emoji/CJK alignment matches the core MD060 rule.
+ * @see https://github.com/DavidAnson/markdownlint/blob/v0.40.0/doc/md060.md
  */
 
-// --- Table detection (GFM, same as vscode-markdown)
+// --- Table detection (GFM)
 const LINE_BREAK = /\r?\n/;
 const contentLine = String.raw`\|?.*\|.*\|?`;
 const leftSideHyphenComponent = String.raw`(?:\|? *:?-+:? *\|)`;
@@ -26,11 +25,24 @@ const TABLE_REGEX = new RegExp(
 
 const ROWS_NO_INDENT = /^\s*(\S.*)$/gum;
 const FIELD_REGEX = /((\\\||[^\|])*)\|/gu;
-const CJK_OR_WIDE = /[\u3000-\u9fff\uac00-\ud7af\uff01-\uff60]/g;
+
+// Approximate MD060's visual width: emoji/CJK double-width, variation selectors zero-width.
+const WIDE_CHAR = /[\u3000-\u9fff\uac00-\ud7af\uff01-\uff60]|\p{Extended_Pictographic}/u;
+const VARIATION_SELECTOR = /[\uFE00-\uFE0F]|\p{Variation_Selector}/u;
 
 function visualWidth(str) {
-  const cjk = str.match(CJK_OR_WIDE);
-  return str.length + (cjk ? cjk.length : 0);
+  let width = 0;
+  for (const ch of str) {
+    if (VARIATION_SELECTOR.test(ch)) {
+      continue;
+    }
+    if (WIDE_CHAR.test(ch)) {
+      width += 2;
+    } else {
+      width += 1;
+    }
+  }
+  return width;
 }
 
 const ALIGN_NONE = 0;
@@ -39,15 +51,16 @@ const ALIGN_CENTER = 2;
 const ALIGN_RIGHT = 3;
 
 function alignCell(text, align, length) {
-  if (length <= text.length) return text.slice(0, length);
-  const pad = length - text.length;
+  const currentWidth = visualWidth(text);
+  if (length <= currentWidth) return text;
+  const pad = length - currentWidth;
   const sp = " ".repeat(pad);
   if (align === ALIGN_CENTER) {
     const left = Math.floor(pad / 2);
-    return (sp.slice(0, left) + text + sp.slice(0, pad - left)).slice(0, length);
+    return sp.slice(0, left) + text + sp.slice(0, pad - left);
   }
-  if (align === ALIGN_RIGHT) return (sp + text).slice(-length);
-  return (text + sp).slice(0, length);
+  if (align === ALIGN_RIGHT) return sp + text;
+  return text + sp;
 }
 
 function formatTableAligned(tableText, eol) {
@@ -60,6 +73,7 @@ function formatTableAligned(tableText, eol) {
   const rows = Array.from(text.matchAll(ROWS_NO_INDENT), (m) => m[1].trim());
   if (rows.length < 2) return null;
 
+  // colWidth: visual width (string-width; emoji/CJK wide)
   const colWidth = [];
   const colAlign = [];
 
@@ -128,6 +142,10 @@ function formatTableAligned(tableText, eol) {
   return out.join(eol);
 }
 
+/**
+ * Format table as MD060 "compact": single space around cell content; optional aligned delimiter row.
+ * @see https://github.com/DavidAnson/markdownlint/blob/main/doc/md060.md
+ */
 function formatTableCompact(tableText, eol, alignedDelimiter) {
   const text = tableText.normalize();
   const delimiterRowIndex = 1;
@@ -204,7 +222,11 @@ function formatTableCompact(tableText, eol, alignedDelimiter) {
   return out.join(eol);
 }
 
-function formatTableTight(tableText, eol) {
+/**
+ * Format table as MD060 "tight": no padding around cell content.
+ * @see https://github.com/DavidAnson/markdownlint/blob/main/doc/md060.md
+ */
+function formatTableTight(tableText, eol, alignedDelimiter) {
   const text = tableText.normalize();
   const delimiterRowIndex = 1;
   const indentRegex = /^(\s*)\S/u;
@@ -262,11 +284,12 @@ function getLineNumber(text, index) {
   return (text.slice(0, index).match(/\n/g) || []).length + 1;
 }
 
+/** @type {import("markdownlint").Rule} */
 module.exports = {
-  names: ["table-format", "table-column-style-fix"],
+  names: ["table-column-style-fix"],
   description:
     "Format markdown tables to comply with MD060. Supports style: aligned | compact | tight (see md060.md). Uses fixInfo by default unless config.fix or config.fixApplicator is false.",
-  information: new URL("https://github.com/DavidAnson/markdownlint/blob/main/doc/md060.md"),
+  information: new URL("https://github.com/DavidAnson/markdownlint/blob/main/doc/CustomRules.md"),
   tags: ["table", "fix", "custom"],
   parser: "none",
   function: function (params, onError) {
@@ -288,7 +311,7 @@ module.exports = {
       } else if (style === "compact") {
         formatted = formatTableCompact(tableText, eol, alignedDelimiter);
       } else if (style === "tight") {
-        formatted = formatTableTight(tableText, eol);
+        formatted = formatTableTight(tableText, eol, alignedDelimiter);
       }
       if (formatted == null || formatted === tableText) continue;
 
