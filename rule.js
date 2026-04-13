@@ -286,7 +286,7 @@ function getLineNumber(text, index) {
 
 /** @type {import("markdownlint").Rule} */
 module.exports = {
-  names: ["table-column-style-fix"],
+  names: ["table-format", "table-column-style-fix"],
   description:
     "Format markdown tables to comply with MD060. Supports style: aligned | compact | tight (see md060.md). Uses fixInfo by default unless config.fix or config.fixApplicator is false.",
   information: new URL("https://github.com/DavidAnson/markdownlint/blob/main/doc/CustomRules.md"),

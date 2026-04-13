@@ -1,13 +1,14 @@
 "use strict";
 
-const markdownlint = require("markdownlint");
 const tableFormat = require("../rule.js");
 
-function runTests() {
+async function runTests() {
+  const { lint } = await import("markdownlint/sync");
+
   const alignedInput = [
-    "| A   | B   |",
-    "| --- | --- |",
-    "| 1   | 2   |",
+    "| A | B |",
+    "| - | - |",
+    "| 1 | 2 |",
   ].join("\n");
 
   const tightInput = [
@@ -27,9 +28,9 @@ function runTests() {
 
   // Test 1: Tight table should have no errors when style is tight
   (function () {
-    const result = markdownlint.sync({
+    const result = lint({
       strings: { "tight.md": tightInput },
-      config: { "table-format": { style: "tight" } },
+      config: { default: false, "table-format": { style: "tight" } },
       customRules: [tableFormat],
     });
     const errors = result["tight.md"] || [];
@@ -44,9 +45,9 @@ function runTests() {
 
   // Test 2: Messy (aligned) table should be reported when style is tight
   (function () {
-    const result = markdownlint.sync({
+    const result = lint({
       strings: { "messy.md": messyInput },
-      config: { "table-format": { style: "tight" } },
+      config: { default: false, "table-format": { style: "tight" } },
       customRules: [tableFormat],
     });
     const errors = result["messy.md"] || [];
@@ -61,9 +62,9 @@ function runTests() {
 
   // Test 3: Aligned table should have no errors when style is aligned
   (function () {
-    const result = markdownlint.sync({
+    const result = lint({
       strings: { "aligned.md": alignedInput },
-      config: { "table-format": { style: "aligned" } },
+      config: { default: false, "table-format": { style: "aligned" } },
       customRules: [tableFormat],
     });
     const errors = result["aligned.md"] || [];
@@ -78,9 +79,9 @@ function runTests() {
 
   // Test 4: style "any" disables the rule
   (function () {
-    const result = markdownlint.sync({
+    const result = lint({
       strings: { "any.md": messyInput },
-      config: { "table-format": { style: "any" } },
+      config: { default: false, "table-format": { style: "any" } },
       customRules: [tableFormat],
     });
     const errors = result["any.md"] || [];
