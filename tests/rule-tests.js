@@ -408,6 +408,135 @@ async function runTests() {
   });
 
   // ===========================================================================
+  // Visual width: this rule must agree with core MD060
+  //
+  // The rule's own width model has to match markdownlint's, or the two disagree
+  // and the fix never converges: this rule emits a table, MD060 rejects it, and
+  // re-running produces the same result forever. These tests assert the real
+  // invariant — apply this rule's fixes, then lint with core MD060 enabled and
+  // expect silence — rather than asserting a particular padding, so they stay
+  // valid if MD060's own width model changes.
+  // ===========================================================================
+
+  // Applies every fixInfo this rule reports, innermost-last so offsets stay valid.
+  function applyFixes(input, errors) {
+    const lines = input.split("\n");
+    for (const e of errors) {
+      if (e.fixInfo && typeof e.fixInfo.insertText === "string") {
+        lines[e.lineNumber - 1] = e.fixInfo.insertText;
+      }
+    }
+    return lines.join("\n");
+  }
+
+  // Lints with BOTH this rule and core MD060 (table-column-style) turned on.
+  function lintWithCore(input) {
+    const result = lint({
+      strings: { "test.md": input },
+      config: {
+        default: false,
+        "table-column-style": { style: "aligned" },
+        "table-format": { style: "aligned" },
+      },
+      customRules: [tableFormat],
+    });
+    return result["test.md"] || [];
+  }
+
+  function assertConverges(name, table) {
+    run(`visual width: ${name} — fixed output satisfies core MD060`, () => {
+      const first = lintWithCore(table);
+      const fixed = applyFixes(table, first);
+      const second = lintWithCore(fixed).filter((e) => e.ruleNames.includes("MD060"));
+      assert(
+        second.length === 0,
+        `core MD060 still reports ${second.length} error(s) after this rule's fix.\n` +
+          `Fixed output was:\n${fixed}`
+      );
+    });
+  }
+
+  // Text-presentation pictographs. Extended_Pictographic matches these but they
+  // render single-width — this is the case that regressed in v1.0.3.
+  assertConverges(
+    "text-presentation pictographs (U+26A0, U+00A9)",
+    [
+      "| Col | Note |",
+      "| --- | --- |",
+      "| warn | \u26a0 alpha |",
+      "| copy | \u00a9 beta |",
+      "| ok | plain |",
+    ].join("\n")
+  );
+
+  assertConverges(
+    "more text-presentation pictographs (U+2600, U+2122)",
+    [
+      "| Key | Value |",
+      "| --- | --- |",
+      "| sun | \u2600 shine |",
+      "| tm | \u2122 mark |",
+    ].join("\n")
+  );
+
+  // Genuine double-width characters must still be treated as width 2.
+  assertConverges(
+    "emoji-presentation characters (U+2705, U+274C)",
+    [
+      "| State | Note |",
+      "| --- | --- |",
+      "| pass | \u2705 done |",
+      "| fail | \u274c broken |",
+      "| none | plain |",
+    ].join("\n")
+  );
+
+  assertConverges(
+    "CJK",
+    [
+      "| Lang | Text |",
+      "| --- | --- |",
+      "| zh | \u4e2d\u6587 sample |",
+      "| en | latin |",
+    ].join("\n")
+  );
+
+  assertConverges(
+    "emoji with variation selector (U+26A0 U+FE0F)",
+    [
+      "| Col | Note |",
+      "| --- | --- |",
+      "| warn | \u26a0\ufe0f alpha |",
+      "| ok | plain |",
+    ].join("\n")
+  );
+
+  // U+FE0E asks for text presentation, but MD060 ignores it and still counts the
+  // base emoji as two columns. This rule matches MD060 rather than the terminal,
+  // so this case must converge on width 2 — see the note in rule.js.
+  assertConverges(
+    "emoji with text-presentation selector (U+2705 U+FE0E) — MD060 ignores U+FE0E",
+    [
+      "| Col | Note |",
+      "| --- | --- |",
+      "| text | \u2705\ufe0e alpha |",
+      "| ok | plain |",
+    ].join("\n")
+  );
+
+  // Mixed in one table — the hardest case, since every column's width must be
+  // right simultaneously.
+  assertConverges(
+    "mixed text-presentation, emoji-presentation, CJK and ASCII",
+    [
+      "| A | B | C |",
+      "| --- | --- | --- |",
+      "| \u26a0 warn | \u2705 ok | plain |",
+      "| \u00a9 copy | \u274c no | \u4e2d\u6587 |",
+    ].join("\n")
+  );
+
+  // ===========================================================================
   // Summary
   // ===========================================================================
 

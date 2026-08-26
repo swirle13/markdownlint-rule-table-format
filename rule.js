@@ -27,20 +27,63 @@ const ROWS_NO_INDENT = /^\s*(\S.*)$/gum;
 const FIELD_REGEX = /((\\\||[^\|])*)\|/gu;
 
 // Approximate MD060's visual width: emoji/CJK double-width, variation selectors zero-width.
-const WIDE_CHAR = /[\u3000-\u9fff\uac00-\ud7af\uff01-\uff60]|\p{Extended_Pictographic}/u;
+//
+// Whether a pictograph is one column or two comes down to its *presentation*, which is
+// not a property of the code point alone:
+//
+//   - Emoji_Presentation characters (U+2705, U+274C, ...) default to emoji presentation
+//     and are two columns.
+//   - Extended_Pictographic characters that are NOT Emoji_Presentation (U+26A0 WARNING
+//     SIGN, U+00A9 COPYRIGHT SIGN, U+2600 BLACK SUN, U+2122 TRADE MARK) default to *text*
+//     presentation and are ONE column.
+//   - ...unless followed by U+FE0F VARIATION SELECTOR-16, which forces emoji presentation
+//     and makes the sequence two columns.
+//
+// U+FE0E VARIATION SELECTOR-15 (force *text* presentation) is deliberately NOT handled as
+// the mirror case: MD060 ignores it and still counts e.g. U+2705 U+FE0E as two columns.
+// Honoring it here would be more faithful to how a terminal renders the sequence, and
+// would put this rule back out of step with MD060 — which is the one thing it must not
+// be. Revisit only if MD060's own width model starts honoring U+FE0E.
+//
+// Testing Extended_Pictographic alone therefore over-counts every text-presentation
+// pictograph, and testing Emoji_Presentation alone under-counts every "<base>U+FE0F"
+// sequence. Either way this rule disagrees with MD060, emits a table MD060 rejects, and
+// the fix never converges no matter how many times it is re-run.
+//
+// See the "visual width" section of tests/rule-tests.js, which asserts the invariant that
+// actually matters: run this rule's fix, then lint with core MD060 and get silence.
+const CJK_WIDE = /[\u3000-\u9fff\uac00-\ud7af\uff01-\uff60]/u;
+const EMOJI_PRESENTATION = /\p{Emoji_Presentation}/u;
+const EXTENDED_PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
 const VARIATION_SELECTOR = /[\uFE00-\uFE0F]|\p{Variation_Selector}/u;
+const VS16_EMOJI = "\uFE0F";
 
 function visualWidth(str) {
+  // Iterate by code point, looking one ahead so a base character can see whether a
+  // variation selector follows it.
+  const chars = [...str];
   let width = 0;
-  for (const ch of str) {
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+
+    // Variation selectors are zero-width themselves; their effect is applied by the
+    // base character below.
     if (VARIATION_SELECTOR.test(ch)) {
       continue;
     }
-    if (WIDE_CHAR.test(ch)) {
+
+    if (CJK_WIDE.test(ch)) {
       width += 2;
-    } else {
-      width += 1;
+      continue;
     }
+
+    if (EXTENDED_PICTOGRAPHIC.test(ch)) {
+      const forcedEmoji = chars[i + 1] === VS16_EMOJI;
+      width += forcedEmoji || EMOJI_PRESENTATION.test(ch) ? 2 : 1;
+      continue;
+    }
+
+    width += 1;
   }
   return width;
 }
